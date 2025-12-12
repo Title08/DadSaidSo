@@ -1,65 +1,65 @@
 # DadSaidSo v0.2 (GitHub Edition)
 
-โปรแกรมสร้างใบเสนอราคาอัตโนมัติด้วย AI (Gemini) สำหรับธุรกิจรถเช่าเหมา
-รองรับการทำงานผ่าน Console และ Telegram Bot
+Automated Quotation Generator powered by AI (Gemini) for Bus Rental Businesses.
+Supports operation via Console and Telegram Bot.
 
-## 📋 ความสามารถ
-- แปลงข้อความภาษาธรรมชาติ (เช่น "ไปเชียงใหม่ 3 วัน 2 คัน") เป็นใบเสนอราคา PDF
-- ดึงข้อมูลสถานที่และที่อยู่ลูกค้าอัตโนมัติด้วย AI
-- คำนวณราคารวมและแปลงเป็นตัวอักษรบาทไทย
-- สร้างไฟล์ PDF สวยงามพร้อมส่ง
+## 📋 Features
+- Converts natural language text (e.g., "Going to Chiang Mai for 3 days, 2 buses") into a PDF quotation.
+- Automatically extracts location data and customer addresses using AI.
+- Calculates total price and converts numbers to Thai Baht text.
+- Generates professional PDF files ready for sending.
 
-## 🛠️ การติดตั้ง
+## 🛠️ Installation
 
-1. **Clone โปรเจค**
+1. **Clone the project**
    ```bash
-   git clone https://github.com/yourusername/DadSaidSo.git
+   git clone https://github.com/Title08/DadSaidSo.git
    cd DadSaidSo
    ```
 
-2. **ติดตั้ง Library ที่จำเป็น**
+2. **Install required libraries**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **ตั้งค่า Environment Variables**
-   สร้างไฟล์ `.env` ในโฟลเดอร์โปรเจค และใส่ค่า Key ต่างๆ ดังนี้:
+3. **Setup Environment Variables**
+   Create a `.env` file in the project folder and add the following keys:
 
    ```env
-   # Google Gemini API Key (ขอฟรีที่ aistudio.google.com)
+   # Google Gemini API Key (Get for free at aistudio.google.com)
    GEMINI_API_KEY=your_gemini_api_key_here
 
-   # Telegram Bot Token (ถ้าใช้ Telegram)
+   # Telegram Bot Token (If using Telegram)
    TELEGRAM_TOKEN=your_telegram_bot_token_here
    ```
 
-   *หมายเหตุ: โค้ดรองรับการอ่านค่าจาก Environment Variable ของระบบ หรือจะใช้ library `python-dotenv` เพื่ออ่านจากไฟล์ .env ก็ได้ (ในโค้ดตัวอย่างนี้ใช้ `os.getenv` ซึ่งรองรับทั้งคู่)*
+   *Note: The code supports reading from system Environment Variables or using the `python-dotenv` library to read from a .env file (this example uses `os.getenv` which supports both).*
 
-## 🚀 วิธีใช้งาน
+## 🚀 Usage
 
-### 1. ใช้งานผ่าน Console (ทดสอบ)
-รันไฟล์ `dad_app.py` เพื่อทดสอบการสร้าง PDF จากข้อความใน Terminal
+### 1. Console Usage (Testing)
+Run `dad_app.py` to test PDF generation from text in the Terminal.
 ```bash
 python dad_app.py
 ```
 
-### 2. ใช้งานผ่าน Telegram Bot
-รันไฟล์ `dad_telegram.py`
+### 2. Telegram Bot Usage
+Run `dad_telegram.py`
 ```bash
 python dad_telegram.py
 ```
-จากนั้นทักแชทไปที่บอทของคุณแล้วพิมพ์รายละเอียดงานได้เลย
+Then chat with your bot and type the job details.
 
-## 📂 โครงสร้างไฟล์
-- `dad_logic.py`: สมองหลัก เชื่อมต่อ AI และประมวลผลข้อความ
-- `dad_printer.py`: ตัวจัดการเอกสาร สร้างไฟล์ PDF
-- `dad_app.py`: โปรแกรมหลักสำหรับรันในเครื่อง
-- `dad_telegram.py`: บอทสำหรับ Telegram
-- `fonts/`: โฟลเดอร์เก็บฟอนต์ภาษาไทย (TH Sarabun New)
+## 📂 File Structure
+- `dad_logic.py`: Core logic, connects to AI and processes text.
+- `dad_printer.py`: Document manager, generates PDF files.
+- `dad_app.py`: Main program for local execution.
+- `dad_telegram.py`: Bot for Telegram.
+- `fonts/`: Folder containing Thai fonts (TH Sarabun New).
 
-## ⚠️ ข้อควรระวัง
-- อย่าอัปโหลดไฟล์ `.env` หรือไฟล์ที่มี API Key ขึ้น GitHub
-- ตรวจสอบโควต้าการใช้งาน API ของ Google Gemini
+## ⚠️ Caution
+- Do not upload `.env` files or files containing API Keys to GitHub.
+- Check your Google Gemini API usage quota.
 
 ---
-พัฒนาโดย [ชื่อของคุณ]
+Developed by Title08
