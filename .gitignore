@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+Output_PDF/
+Output_PDF_Telegram/
+.venv/
