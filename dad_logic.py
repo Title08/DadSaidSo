@@ -83,6 +83,70 @@ def extract_data_from_text(user_input):
             
         clean_text = re.sub(r'```json|```', '', response.text).strip()
         data = json.loads(clean_text)
+
+        def extract_data_from_text(user_input):
+    if "YOUR_GEMINI_API_KEY" in API_KEY:
+        print("❌ ลืมใส่ GEMINI API KEY ในไฟล์ dad_logic.py ครับ!")
+        return None
+
+    print(f"   ... กำลังส่งข้อมูลไปให้ AI (Gemini Pro) คิดและค้นหาข้อมูล...")
+    
+    try:
+        # 1. ตั้งค่า
+        genai.configure(api_key=API_KEY)
+        model = genai.GenerativeModel('gemini-flash-latest') # หรือ gemini-1.5-flash
+
+        # 2. Prompt (ชุดคำสั่ง)
+        prompt = f"""
+        You are an expert secretary for a Thai bus rental business.
+        {get_current_date_context()}
+        
+        Task: Extract data to JSON.
+        ... (ใส่ Prompt ยาวๆ ของคุณตรงนี้เหมือนเดิม) ...
+        User Input: "{user_input}"
+        """
+
+        # 3. เรียกใช้งาน
+        try:
+            response = model.generate_content(prompt)
+        except Exception as e:
+            chat = model.start_chat()
+            response = chat.send_message(prompt)
+        
+        # 4. แกะ JSON
+        if not response.text:
+            return None
+            
+        clean_text = re.sub(r'```json|```', '', response.text).strip()
+        data = json.loads(clean_text)
+
+        # ==========================================
+        # 🟢 HARD LOGIC SECTION (หัวใจสำคัญของคุณ)
+        # ==========================================
+        try:
+            # แปลงข้อมูลเป็นตัวเลข (Default quantity = 1, price = 0)
+            qty = int(data.get('quantity', 1)) 
+            price = float(data.get('unit_price', 0))
+            
+            # คำนวณราคาสุทธิ (Calculation)
+            total_price = qty * price
+        
+            # อัปเดตค่ากลับเข้าไปใน Dictionary เพื่อเตรียมทำ PDF
+            data['quantity'] = qty
+            data['unit_price'] = price
+            data['total_price'] = total_price  # ราคาก่อน VAT
+            
+            print(f"✅ Hard Logic Applied: {qty} x {price} = {total_price}")
+
+        except Exception as logic_error:
+            print(f"⚠️ Calculation Error: {logic_error}")
+            # ถ้าคำนวณไม่ได้ ให้ใช้ค่าเดิมที่ AI ส่งมา (Fallback)
+        
+        return data
+
+    except Exception as e:
+        print(f"❌ System Error: {e}")
+        return None
         
         # 5. คำนวณราคา
         qty = data.get('quantity', 0) or 0
