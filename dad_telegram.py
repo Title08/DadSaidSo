@@ -1,78 +1,213 @@
-import telebot
+"""
+DadSaidSo Telegram Bot - Automated Quotation Generator
+Powered by Groq Cloud API (Llama models)
+"""
+
 import os
+import telebot
+from dotenv import load_dotenv
 import dad_logic
 import dad_printer
-from dotenv import load_dotenv
 
-# โหลดค่าจากไฟล์ .env
+
+# ==========================================
+# CONFIGURATION
+# ==========================================
+
+# Load environment variables
 load_dotenv()
 
-# --- 🔑 ใส่ TOKEN ที่ได้จาก BotFather ตรงนี้ ---
-# ดึง Token จาก Environment Variable
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+BOT_PASSWORD = os.getenv("BOT_PASSWORD", "dad2514")
+OUTPUT_FOLDER = "Output_PDF_Telegram"
 
-# สร้างบอท
+# Validate configuration
+if not TELEGRAM_TOKEN:
+    raise ValueError("❌ TELEGRAM_TOKEN not found in .env file")
+
+# Initialize bot
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# สร้างโฟลเดอร์เก็บไฟล์ถ้ายังไม่มี
-OUTPUT_FOLDER = 'Output_PDF_Telegram'
-if not os.path.exists(OUTPUT_FOLDER):
-    os.makedirs(OUTPUT_FOLDER)
+# Authentication system - stores chat_id of logged-in users
+authorized_users = set()
 
-print("🚀 DadSaidSo Telegram Bot เริ่มทำงานแล้ว... (กด Ctrl+C เพื่อหยุด)")
+# Create output folder if it doesn't exist
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-# --- ส่วนต้อนรับ (เมื่อกด Start) ---
+print("🚀 DadSaidSo Telegram Bot เริ่มทำงานแล้ว...")
+print(f"📂 Output folder: {OUTPUT_FOLDER}")
+print("⚙️  Press Ctrl+C to stop\n")
+
+
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
+
+def is_authenticated(chat_id):
+    """Check if user is logged in"""
+    return chat_id in authorized_users
+
+
+def sanitize_filename(filename):
+    """Clean and validate filename"""
+    safe_name = filename.replace(" ", "_").replace("/", "-").replace("\\", "-")
+    if not safe_name.endswith(".pdf"):
+        safe_name += ".pdf"
+    return safe_name
+
+
+def send_login_prompt(chat_id):
+    """Send login instruction message"""
+    return bot.send_message(
+        chat_id,
+        "🔒 กรุณาล็อกอินก่อนใช้งาน\n\n"
+        "พิมพ์: /login [รหัสผ่าน]\n"
+        "ตัวอย่าง: /login dad2026"
+    )
+
+
+# ==========================================
+# COMMAND HANDLERS
+# ==========================================
+
 @bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, "สวัสดีครับพ่อ! \nพิมพ์รายละเอียดงานมาได้เลยครับ \nเช่น 'ม 2 รัตนาทิเบต ค่ายหัตวุฒิ 8 คัน คันละ 9000 28-29 มค 69'")
-
-# --- ส่วนทำงานหลัก (เมื่อมีข้อความเข้า) ---
-@bot.message_handler(func=lambda message: True)
-def handle_message(message):
-    user_text = message.text
+def command_start(message):
+    """Handle /start and /help commands"""
     chat_id = message.chat.id
     
-    print(f"📩 ข้อความเข้า: {user_text}")
+    if is_authenticated(chat_id):
+        bot.reply_to(
+            message,
+            "สวัสดีครับพ่อ! 👋\n\n"
+            "📋 วิธีใช้งาน:\n"
+            "พิมพ์รายละเอียดงานมาได้เลยครับ\n\n"
+            "💡 ตัวอย่าง:\n"
+            "'ม 2 รัตนาทิเบต ค่ายหัตวุฒิ 8 คัน คันละ 9000 28-29 มค 69'\n\n"
+            "🔐 คำสั่ง:\n"
+            "/logout - ออกจากระบบ\n"
+            "/help - แสดงคำสั่ง"
+        )
+    else:
+        send_login_prompt(chat_id)
 
-    # 1. ส่งข้อความบอกว่ากำลังทำ (เพื่อให้รู้ว่าบอทไม่ตาย)
-    loading_msg = bot.send_message(chat_id, "⏳ กำลังประมวลผลและสร้างเอกสารครับ รอสักครู่...")
 
+@bot.message_handler(commands=['login'])
+def command_login(message):
+    """Handle /login command"""
+    chat_id = message.chat.id
+    
+    # Parse password from message
+    parts = message.text.split(maxsplit=1)
+    
+    if len(parts) < 2:
+        bot.reply_to(message, "❌ กรุณาใส่รหัสผ่าน\nตัวอย่าง: /login dad2026")
+        return
+    
+    user_password = parts[1].strip()
+    
+    # Verify password
+    if user_password == BOT_PASSWORD:
+        authorized_users.add(chat_id)
+        bot.reply_to(
+            message,
+            "✅ ล็อกอินสำเร็จ!\n\n"
+            "พิมพ์รายละเอียดงานมาได้เลยครับ\n"
+            "เช่น 'ม 2 รัตนาทิเบต ค่ายหัตวุฒิ 8 คัน คันละ 9000 28-29 มค 69'"
+        )
+        print(f"✅ User {chat_id} logged in successfully")
+    else:
+        bot.reply_to(message, "❌ รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง")
+        print(f"⚠️  Failed login attempt from {chat_id}")
+
+
+@bot.message_handler(commands=['logout'])
+def command_logout(message):
+    """Handle /logout command"""
+    chat_id = message.chat.id
+    
+    if chat_id in authorized_users:
+        authorized_users.remove(chat_id)
+        bot.reply_to(message, "👋 ออกจากระบบเรียบร้อยแล้ว")
+        print(f"👋 User {chat_id} logged out")
+    else:
+        bot.reply_to(message, "ℹ️  คุณยังไม่ได้ล็อกอินอยู่แล้ว")
+
+
+# ==========================================
+# MESSAGE HANDLER
+# ==========================================
+
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    """Handle all text messages (main quotation generation)"""
+    chat_id = message.chat.id
+    user_text = message.text
+    
+    # Check authentication
+    if not is_authenticated(chat_id):
+        send_login_prompt(chat_id)
+        return
+    
+    print(f"📩 Message from User {chat_id}: {user_text}")
+    
+    # Send loading message
+    loading_msg = bot.send_message(
+        chat_id,
+        "⏳ กำลังประมวลผลและสร้างเอกสารครับ รอสักครู่..."
+    )
+    
     try:
-        # 2. ให้ AI คิด (เรียกใช้ dad_logic)
+        # Step 1: Extract data using AI
         quotation_data = dad_logic.extract_data_from_text(user_text)
         
-        if quotation_data:
-            # 3. ตั้งชื่อไฟล์
-            ai_filename = quotation_data.get('suggested_filename', 'quotation.pdf')
-            # ล้างชื่อไฟล์ให้ปลอดภัย
-            safe_filename = ai_filename.replace(" ", "_").replace("/", "-")
-            if not safe_filename.endswith(".pdf"): safe_filename += ".pdf"
-            
-            # Path เต็ม
-            save_path = os.path.join(OUTPUT_FOLDER, safe_filename)
-            
-            # 4. สร้าง PDF (เรียกใช้ dad_printer)
-            dad_printer.create_pdf(quotation_data, save_path)
-            print(f"✅ สร้างไฟล์เสร็จ: {save_path}")
-
-            # 5. ส่งไฟล์ PDF กลับไปในแชท (พระเอกของเรา!)
-            with open(save_path, 'rb') as pdf_file:
-                bot.send_document(
-                    chat_id, 
-                    pdf_file, 
-                    caption=f"✅ เรียบร้อยครับ!\nลูกค้า: {quotation_data.get('customer_name')}\nยอดรวม: {quotation_data.get('total_price'):,} บาท",
-                    reply_to_message_id=message.message_id
-                )
-            
-            # ลบข้อความ "กำลังประมวลผล" ออก เพื่อความเนียน
-            bot.delete_message(chat_id, loading_msg.message_id)
-            
-        else:
-            bot.edit_message_text("❌ AI งงครับพ่อ ขอข้อมูลใหม่อีกทีครับ", chat_id, loading_msg.message_id)
-
+        if not quotation_data:
+            bot.edit_message_text(
+                "❌ AI ไม่สามารถประมวลผลข้อมูลได้\nกรุณาลองใหม่อีกครั้งพร้อมข้อมูลที่ชัดเจนขึ้น",
+                chat_id,
+                loading_msg.message_id
+            )
+            return
+        
+        # Step 2: Generate safe filename
+        ai_filename = quotation_data.get('suggested_filename', 'quotation.pdf')
+        safe_filename = sanitize_filename(ai_filename)
+        save_path = os.path.join(OUTPUT_FOLDER, safe_filename)
+        
+        # Step 3: Create PDF
+        dad_printer.create_pdf(quotation_data, save_path)
+        print(f"✅ PDF created: {save_path}")
+        
+        # Step 4: Send PDF to user
+        with open(save_path, 'rb') as pdf_file:
+            caption = (
+                f"✅ เรียบร้อยครับ!\n\n"
+                f"👤 ลูกค้า: {quotation_data.get('customer_name', 'N/A')}\n"
+                f"💰 ยอดรวม: {quotation_data.get('total_price', 0):,} บาท"
+            )
+            bot.send_document(
+                chat_id,
+                pdf_file,
+                caption=caption,
+                reply_to_message_id=message.message_id
+            )
+        
+        # Step 5: Clean up loading message
+        bot.delete_message(chat_id, loading_msg.message_id)
+        
     except Exception as e:
-        print(f"❌ Error: {e}")
-        bot.edit_message_text(f"เกิดข้อผิดพลาด: {str(e)}", chat_id, loading_msg.message_id)
+        error_msg = f"❌ เกิดข้อผิดพลาด: {str(e)}"
+        print(f"❌ Error processing message from {chat_id}: {e}")
+        bot.edit_message_text(error_msg, chat_id, loading_msg.message_id)
 
-# สั่งให้บอททำงานตลอดเวลา (Polling)
-bot.infinity_polling()
+
+# ==========================================
+# MAIN
+# ==========================================
+
+if __name__ == "__main__":
+    try:
+        bot.infinity_polling()
+    except KeyboardInterrupt:
+        print("\n👋 Bot stopped by user")
+    except Exception as e:
+        print(f"\n❌ Bot crashed: {e}")
